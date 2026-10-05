@@ -1,0 +1,11 @@
+Issue_ID,Order_ID,Issue_Type,Priority,Description,Status
+ISS001,ORD1003,Stock Missing,High,Running Shoes Black-08: required stock not available,Open
+ISS002,ORD1007,Deadline Delay,High,Order missed expected shipment deadline,Open
+ISS003,ORD1015,Stock Mismatch,High,Physical stock lower than system stock,Open
+ISS004,ORD1020,Deadline Delay,High,Priority order is past deadline,Open
+ISS005,ORD1025,Courier Pickup,High,Courier pickup was missed,Open
+ISS006,ORD1033,Stock Missing,High,Insufficient stock for requested quantity,Open
+ISS007,ORD1044,Wrong Variant,Medium,Variant verification required before packing,Open
+ISS008,ORD1006,Packing Check,Medium,Box label needs re-verification,Resolved
+ISS009,ORD1014,Staging Location,Low,Packed box moved from original staging location,Resolved
+ISS010,ORD1039,Courier Pickup,Medium,Pickup confirmation pending,Open

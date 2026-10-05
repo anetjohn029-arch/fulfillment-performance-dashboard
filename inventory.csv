@@ -1,0 +1,26 @@
+SKU,Product,Variant,System_Stock,Physical_Stock,Status,Difference
+SKU001,Black T-Shirt,Black-S,25,25,OK,0
+SKU002,Black T-Shirt,Black-M,30,26,Mismatch,-4
+SKU003,Black T-Shirt,Black-L,20,20,OK,0
+SKU004,Blue Jeans,Blue-30,18,14,Mismatch,-4
+SKU005,Blue Jeans,Blue-32,25,25,OK,0
+SKU006,Blue Jeans,Blue-34,20,18,Mismatch,-2
+SKU007,Running Shoes,Black-07,12,12,OK,0
+SKU008,Running Shoes,Black-08,15,9,Mismatch,-6
+SKU009,Running Shoes,Black-09,10,10,OK,0
+SKU010,Running Shoes,White-07,8,8,OK,0
+SKU011,Running Shoes,White-08,10,6,Mismatch,-4
+SKU012,Running Shoes,White-09,9,9,OK,0
+SKU013,Grey Hoodie,Grey-S,20,20,OK,0
+SKU014,Grey Hoodie,Grey-M,25,25,OK,0
+SKU015,Grey Hoodie,Grey-L,18,15,Mismatch,-3
+SKU016,White Shirt,White-S,22,19,Mismatch,-3
+SKU017,White Shirt,White-M,30,30,OK,0
+SKU018,White Shirt,White-L,15,15,OK,0
+SKU019,Sports Cap,Black-OS,40,37,Mismatch,-3
+SKU020,Denim Jacket,Blue-S,10,10,OK,0
+SKU021,Denim Jacket,Blue-M,15,13,Mismatch,-2
+SKU022,Denim Jacket,Blue-L,12,12,OK,0
+SKU023,White Sneakers,White-07,10,10,OK,0
+SKU024,White Sneakers,White-08,12,8,Mismatch,-4
+SKU025,White Sneakers,White-09,8,8,OK,0
