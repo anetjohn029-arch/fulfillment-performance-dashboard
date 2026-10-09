@@ -587,6 +587,16 @@ st.download_button(
     disabled=not inventory_loaded or not available_inventory_columns,
 )
 
+issues_csv_data = issues.to_csv(index=False) if issues_loaded else ""
+
+st.download_button(
+    label="Download Issues Data as CSV",
+    data=issues_csv_data,
+    file_name="xyz_fulfillment_issues.csv",
+    mime="text/csv",
+    disabled=not issues_loaded,
+)
+
 # ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
