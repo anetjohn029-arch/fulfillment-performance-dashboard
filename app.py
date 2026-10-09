@@ -457,6 +457,20 @@ st.download_button(
     mime="text/csv"
 )
 
+inventory_csv_data = (
+    inventory_display.to_csv(index=False)
+    if inventory_loaded and available_inventory_columns
+    else ""
+)
+
+st.download_button(
+    label="Download Inventory Data as CSV",
+    data=inventory_csv_data,
+    file_name="xyz_fulfillment_inventory_data.csv",
+    mime="text/csv",
+    disabled=not inventory_loaded or not available_inventory_columns,
+)
+
 # ---------------------------------------------------
 # FOOTER
 # ---------------------------------------------------
