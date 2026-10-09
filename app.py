@@ -392,6 +392,122 @@ if inventory_loaded:
         st.info("No supported inventory fields are available to display.")
 
 # ---------------------------------------------------
+# OPEN FULFILLMENT ISSUES
+# ---------------------------------------------------
+
+st.divider()
+
+st.subheader("Open Fulfillment Issues")
+
+issues_path = project_folder / "issues.csv"
+issues = pd.DataFrame()
+issues_loaded = True
+
+try:
+    issues = pd.read_csv(issues_path)
+except FileNotFoundError:
+    issues_loaded = False
+    st.error(f"Issues file not found: {issues_path.name}")
+except pd.errors.EmptyDataError:
+    issues_loaded = False
+    st.error("The issues file is empty or has no column headers.")
+except pd.errors.ParserError as error:
+    issues_loaded = False
+    st.error(f"Could not read the issues file: {error}")
+
+issue_display_columns = [
+    "Issue_ID",
+    "Order_ID",
+    "Issue_Type",
+    "Priority",
+    "Description",
+    "Status",
+]
+
+if issues_loaded:
+    missing_issue_columns = [
+        column for column in issue_display_columns
+        if column not in issues.columns
+    ]
+    if missing_issue_columns:
+        st.warning(
+            "Some issue fields are unavailable: "
+            + ", ".join(missing_issue_columns)
+        )
+
+    total_issue_count = len(issues)
+    open_issue_mask = None
+    high_priority_open_mask = None
+
+    if "Status" in issues.columns:
+        issue_status = (
+            issues["Status"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+        open_issue_mask = issue_status == "open"
+
+    if "Priority" in issues.columns and open_issue_mask is not None:
+        issue_priority = (
+            issues["Priority"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+        high_priority_open_mask = open_issue_mask & (issue_priority == "high")
+
+    issue_col1, issue_col2, issue_col3 = st.columns(3)
+    with issue_col1:
+        st.metric("Total Issues", total_issue_count)
+    with issue_col2:
+        st.metric(
+            "Open Issues",
+            int(open_issue_mask.sum()) if open_issue_mask is not None else "N/A",
+        )
+    with issue_col3:
+        st.metric(
+            "High-Priority Open Issues",
+            (
+                int(high_priority_open_mask.sum())
+                if high_priority_open_mask is not None
+                else "N/A"
+            ),
+        )
+
+    available_issue_columns = [
+        column for column in issue_display_columns
+        if column in issues.columns
+    ]
+    if available_issue_columns:
+        issues_display = issues[available_issue_columns].copy()
+
+        if high_priority_open_mask is not None:
+            def highlight_urgent_issues(row):
+                if high_priority_open_mask.loc[row.name]:
+                    return [
+                        "background-color: #ffcccc; "
+                        "color: #b30000; "
+                        "font-weight: bold;"
+                    ] * len(row)
+                return [""] * len(row)
+
+            issues_display = issues_display.style.apply(
+                highlight_urgent_issues,
+                axis=1,
+            )
+
+        st.dataframe(
+            issues_display,
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No supported issue fields are available to display.")
+
+# ---------------------------------------------------
 # LOCATION-WISE DELAY ANALYSIS
 # ---------------------------------------------------
 
