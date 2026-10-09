@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 
 # ---------------------------------------------------
 # PAGE SETUP
@@ -26,7 +27,35 @@ st.write(
 # LOAD DATA
 # ---------------------------------------------------
 
-orders = pd.read_csv("orders_50.csv")
+project_folder = Path(__file__).resolve().parent
+orders_path = project_folder / "orders_50.csv"
+
+try:
+    orders = pd.read_csv(orders_path)
+except FileNotFoundError:
+    st.error(f"Orders file not found: {orders_path.name}")
+    st.stop()
+except pd.errors.EmptyDataError:
+    st.error("The orders file is empty or has no column headers.")
+    st.stop()
+
+required_order_columns = {
+    "Order_ID",
+    "Customer",
+    "Product",
+    "Priority",
+    "Deadline",
+    "Location",
+    "Status",
+}
+missing_order_columns = required_order_columns.difference(orders.columns)
+
+if missing_order_columns:
+    st.error(
+        "The orders file is missing required columns: "
+        + ", ".join(sorted(missing_order_columns))
+    )
+    st.stop()
 
 # ---------------------------------------------------
 # CALCULATE KPIs
@@ -34,25 +63,29 @@ orders = pd.read_csv("orders_50.csv")
 
 total_orders = len(orders)
 
-delayed_orders = orders[
-    orders["Status"].str.strip().str.lower() == "delayed"
-]
+order_status = orders["Status"].fillna("").astype(str).str.strip().str.lower()
+order_priority = orders["Priority"].fillna("").astype(str).str.strip().str.lower()
+
+delayed_orders = orders[order_status == "delayed"]
 
 delayed_count = len(delayed_orders)
 
-delay_rate = (delayed_count / total_orders) * 100
+delay_rate = (delayed_count / total_orders) * 100 if total_orders else 0
 
-high_priority_orders = orders[
-    orders["Priority"].str.strip().str.lower() == "high"
-]
+high_priority_orders = orders[order_priority == "high"]
 
 high_priority_count = len(high_priority_orders)
 
 high_priority_delayed = high_priority_orders[
-    high_priority_orders["Status"].str.strip().str.lower() == "delayed"
+    order_status.loc[high_priority_orders.index] == "delayed"
 ]
 
 high_priority_delayed_count = len(high_priority_delayed)
+high_priority_delay_rate = (
+    high_priority_delayed_count / high_priority_count * 100
+    if high_priority_count
+    else 0
+)
 
 # ---------------------------------------------------
 # KPI CARDS
@@ -112,14 +145,11 @@ if selected_status == "All Orders":
     filtered_orders = orders.copy()
 
 elif selected_status == "Delayed Only":
-    filtered_orders = orders[
-        orders["Status"].str.strip().str.lower() == "delayed"
-    ].copy()
+    filtered_orders = delayed_orders.copy()
 
 else:
     filtered_orders = orders[
-        orders["Status"].str.strip().str.lower()
-        == selected_status.lower()
+        order_status == selected_status.lower()
     ].copy()
 
 # ---------------------------------------------------
@@ -210,7 +240,7 @@ st.divider()
 
 st.subheader("⭐ High Priority Order Analysis")
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
 
@@ -225,6 +255,141 @@ with col2:
         "High Priority Delayed",
         high_priority_delayed_count
     )
+
+with col3:
+
+    st.metric(
+        "High-Priority Delay Rate",
+        f"{high_priority_delay_rate:.1f}%"
+    )
+
+# ---------------------------------------------------
+# INVENTORY HEALTH
+# ---------------------------------------------------
+
+st.divider()
+
+st.subheader("Inventory Health")
+
+inventory_path = project_folder / "inventory.csv"
+inventory = pd.DataFrame()
+inventory_loaded = True
+
+try:
+    inventory = pd.read_csv(inventory_path)
+except FileNotFoundError:
+    inventory_loaded = False
+    st.error(f"Inventory file not found: {inventory_path.name}")
+except pd.errors.EmptyDataError:
+    inventory_loaded = False
+    st.error("The inventory file is empty or has no column headers.")
+except pd.errors.ParserError as error:
+    inventory_loaded = False
+    st.error(f"Could not read the inventory file: {error}")
+
+inventory_display_columns = [
+    "SKU",
+    "Product",
+    "System_Stock",
+    "Physical_Stock",
+    "Difference",
+    "Status",
+]
+missing_inventory_columns = [
+    column for column in inventory_display_columns
+    if column not in inventory.columns
+]
+
+if inventory_loaded and missing_inventory_columns:
+    st.warning(
+        "Some inventory fields are unavailable: "
+        + ", ".join(missing_inventory_columns)
+    )
+
+if inventory_loaded:
+    inventory_table = inventory.copy()
+    if (
+        "Difference" not in inventory_table.columns
+        and {"System_Stock", "Physical_Stock"}.issubset(inventory_table.columns)
+    ):
+        system_stock = pd.to_numeric(
+            inventory_table["System_Stock"], errors="coerce"
+        )
+        physical_stock = pd.to_numeric(
+            inventory_table["Physical_Stock"], errors="coerce"
+        )
+        inventory_table["Difference"] = physical_stock - system_stock
+
+    mismatch_mask = pd.Series(False, index=inventory_table.index)
+    if "Status" in inventory_table.columns:
+        mismatch_mask |= (
+            inventory_table["Status"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            == "mismatch"
+        )
+    elif "Difference" in inventory_table.columns:
+        mismatch_mask |= (
+            pd.to_numeric(inventory_table["Difference"], errors="coerce")
+            .fillna(0)
+            .ne(0)
+        )
+
+    inventory_count = len(inventory_table)
+    mismatch_count = int(mismatch_mask.sum())
+    mismatch_rate = mismatch_count / inventory_count * 100 if inventory_count else 0
+    mismatch_supported = (
+        "Status" in inventory_table.columns
+        or "Difference" in inventory_table.columns
+    )
+
+    inventory_col1, inventory_col2, inventory_col3 = st.columns(3)
+    with inventory_col1:
+        st.metric("Total Inventory Records", inventory_count)
+    with inventory_col2:
+        st.metric(
+            "Inventory Mismatches",
+            mismatch_count if mismatch_supported else "N/A",
+        )
+    with inventory_col3:
+        st.metric(
+            "Inventory Mismatch Rate",
+            f"{mismatch_rate:.1f}%" if mismatch_supported else "N/A",
+        )
+
+    available_inventory_columns = [
+        column for column in inventory_display_columns
+        if column in inventory_table.columns
+    ]
+    if available_inventory_columns:
+        inventory_display = inventory_table[available_inventory_columns].copy()
+        inventory_display = inventory_display.rename(
+            columns={
+                "System_Stock": "System Stock",
+                "Physical_Stock": "Physical Stock",
+                "Difference": "Stock Difference",
+            }
+        )
+
+        def highlight_inventory_mismatches(row):
+            if mismatch_mask.loc[row.name]:
+                return [
+                    "background-color: #ffcccc; color: #b30000; font-weight: bold;"
+                ] * len(row)
+            return [""] * len(row)
+
+        st.dataframe(
+            inventory_display.style.apply(
+                highlight_inventory_mismatches,
+                axis=1,
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("No supported inventory fields are available to display.")
 
 # ---------------------------------------------------
 # LOCATION-WISE DELAY ANALYSIS
